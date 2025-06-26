@@ -1,0 +1,202 @@
+---
+title: "Sentinel Site Selection Proposal for Genomic Surveillance in Ethiopia (2020-2024)"
+author: "Henok T"
+# format: html
+# For RevealJS, uncomment below and comment out 'format: html'
+format: 
+  html:
+    self-contained: true 
+theme: sky
+editor: visual
+---
+
+```{r include=FALSE}
+pacman::p_load(tidyverse, sf, tmap, DT, here)
+
+# Load pre-processed data
+dat_multi <- readRDS(here("output/dat_multi.rds"))
+dat_multi_sf <- readRDS(here("output/dat_multi_sf.rds"))
+eth_adm1 <- readRDS(here("output/eth_adm1.rds"))
+
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+
+-   **Objective**: Propose sentinel sites for genomic surveillance in Ethiopia to enhance outbreak detection and response.
+-   **Data Source**: Disease surveillance data (2020-2024) covering 4,852 records from total reporting woredas in the above years.
+
+------------------------------------------------------------------------
+
+-   **Diseases**:
+    -   Malaria (`mal`), Meningitis (`mng`), AFP Polio (`afp`), Anthrax (`anth`), Rabies (`rab`), Measles (`msls`): 2020-2024.
+    -   Cholera (`chlr`): 2022-2024.
+    -   Dengue Fever (`deng_fevr`): 2023-2024.
+
+------------------------------------------------------------------------
+
+-   **Goals**:
+    -   Identify high-burden woredas for each disease.
+    -   Select woredas with multiple diseases for comprehensive surveillance.
+    -   Visualize results interactively for stakeholder use.
+
+## Methodology: Data Collection and Preparation
+
+-   **Scope**: Aggregated disease cases by woreda and region from 2020 to 2024.
+-   **Data Limitations**:
+    -   Cholera data available only from 2022-2024.
+    -   Dengue fever data available only from 2023-2024.
+    -   Missing values (`NA`) treated as zero to ensure consistent analysis.
+
+------------------------------------------------------------------------
+
+-   **Processing**:
+    -   Summed cases per disease per woreda, respecting data availability periods.
+    -   Used `tidyverse` for data cleaning and aggregation.
+
+## Methodology: Site Selection Process
+
+-   **Step 1: Ranking Woredas per Disease**:
+    -   For each disease, ranked woredas by case count within each region.
+    -   Selected top 20 woredas for Oromia and Amhara (high-population regions).
+    -   Selected top 10 woredas for other regions.
+
+------------------------------------------------------------------------
+
+-   **Step 2: Identifying Multi-Disease Woredas**:
+    -   Identified woredas appearing in multiple disease rankings.
+    -   Calculated:
+        -   `num_diseases`: Number of diseases ranked in top 10/20.
+        -   `diseases_present`: List of diseases.
+        -   `total_cases`: Sum of cases across all diseases (for context).
+    -   Filtered for woredas with at least two diseases.
+    -   Sorted by region, `num_diseases` (descending), and `total_cases` (descending).
+
+## Methodology: Visualization
+
+-   **Tools**: Used `tmap` for interactive mapping and `DT` for tables(Table isnot working now but will be corrected)
+-   **Map Components**:
+    -   Woredas colored by `num_diseases` (Blues palette).
+    -   Admin 1 (region) boundaries with labels to show geographic context.
+    -   Popups with details: region, zone, woreda, number of diseases, diseases present, total cases.
+
+------------------------------------------------------------------------
+
+-   **Table**:Interactive display of proposed woredas with filtering and sorting capabilities.
+-   **Shapefiles**:
+    -   Admin 3 (woredas): `eth_admbnda_adm3_csa_bofedb_2021.shp`.
+    -   Admin 1 (regions): `eth_admbnda_adm1_csa_bofedb_2021.shp`.
+
+# Results: Proposed Sentinel Sites - Interactive Table
+
+-   **Description**:
+    -   Shows woredas with multiple diseases, proposed as sentinel sites.
+    -   Columns: `region`, `zone`, `woreda`, `num_diseases`, `diseases_present`, `total_cases`.
+
+------------------------------------------------------------------------
+
+-   **How to Access and Use**:
+    -   **Filter**: Use the search bar to find specific regions or woredas.
+    -   **Sort**: Click column headers (e.g., `num_diseases`) to rank by disease count.
+    -   **Navigate**: Use pagination to view all entries.
+    -   Helps stakeholders identify priority woredas for surveillance.
+
+## Propose Sentinel Sites - Table {.table-slide .flex-slide}
+
+**Table is not working, needs maintenance by the creator**
+
+```{r}
+
+# DT::datatable(
+#   dat_multi %>% 
+#     select(region, zone, woreda, num_diseases, diseases_present, total_cases) %>%
+#     arrange(region, desc(num_diseases), desc(total_cases)),
+#   options = list(
+#     pageLength = 5,
+#     scrollX = TRUE,
+#     searchHighlight = TRUE,
+#     # set a fixed height so it fits
+#     height = "400px",
+#     width = "100%"
+#   ),
+#   caption = "Table 1: Proposed Sentinel Sites with Multiple Diseases"
+# )
+
+
+```
+
+# Results: Proposed Sentinel Sites - Interactive Table
+
+-   **Description**:
+
+    -   Visualizes proposed sentinel sites (woredas with \>=2 diseases).
+    -   Colored by number of diseasese ( darker blue = more disease reported)
+    -   Includes Admin 1 boundaries and region names for context.
+
+------------------------------------------------------------------------
+
+-   **How to use the map**:
+
+    -   **Zoom/Pan**: Explore specific regions or woredas.
+    -   **Click**:View popups with details (region, zone, woreda, diseases, cases).
+    -   **Legend**: Interpret disease count via the color scale.
+    -   Ideal for spatial analysis and Site prioritization.
+
+    ```{r map, echo=FALSE}
+    #| classes: map-slide 
+
+    tmap::tmap_mode("view")
+    tm_shape(dat_multi_sf) +
+      tm_polygons(
+        "num_diseases",
+        title = "Number of Diseases",
+        palette = "Blues",
+        popup.vars = c("region", "zone", "woreda", "num_diseases", "diseases_present", "total_cases"),
+        id = "woreda",
+        alpha = 0.7
+      ) +
+      tm_shape(eth_adm1) +
+      tm_borders(
+        col = "black",
+        lwd = 2,
+        alpha = 0.8
+      ) +
+      tm_text(
+        "adm1_en",
+        size = 0.8,
+        col = "black",
+        fontface = "bold"
+      ) +
+      tm_layout(
+        title = "Sentinel Sites with Multiple Diseases (2020-2024)",
+        title.position = c("center", "top"),
+        # legend.position = c("left", "bottom")
+      )
+
+
+    ```
+
+## Discussion
+
+-   **Key Findings**:
+    -   \[Placeholder: e.g., "Oromia and Amhara have multiple woredas with 3+ diseases, ideal for surveillance hubs."\]
+    -   Limited cholera and dengue data may underrepresent some woredas' burden.
+
+------------------------------------------------------------------------
+
+-   **Implications**:
+    -   Multi-disease woredas ensure broad pathogen coverage.
+-   **Limitations**:
+    -   Cholera (2022-2024) and dengue (2023-2024) data gaps.
+    -   Potential under reporting or missing data (`NA` values).
+    -   utilization of cases definitions in healht facilites - hence reported cases might not really be cases.
+
+## Conclusion
+
+-   **Summary**:
+    -   Proposed sentinel sites based on high disease burden and diversity.
+    -   Interactive table and map generated to facilitate data-driven decisions.
+-   **Next Steps**:
+    -   Refine the proposed sites by improving selection approach.
+    -   Validate sites through discussion with regions and field assessments.
+-   **Contact**: Henok T (\[henoktadesse95\@gmail.coml\])
